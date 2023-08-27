@@ -14,11 +14,11 @@
     
 -   Generate the application key
     
-    vendor/bin/sail artisan key:generate
+    php artisan key:generate
     
 -   Run migrations
     
-    vendor/bin/sail artisan migrate:fresh
+    php artisan migrate:fresh
 
 ### run command to create default author
 
