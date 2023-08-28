@@ -6,7 +6,13 @@ use App\Http\Requests\CreateAuthorRequest;
 use App\Http\Requests\CreatePublishBlogPosts;
 use App\Http\Requests\UpdateBlogPostsRequest;
 use App\Models\Posts;
+use App\Models\User;
 use App\Services\BlogsServices;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class BlogsController extends Controller
 {
@@ -34,6 +40,38 @@ class BlogsController extends Controller
                 "message" => $message,
             ], $statusCode);
         }
+    }
+
+    public function loginAuthor(Request $request)
+    {
+        $validation = Validator::make($request->all(), [
+            "email" => "required|email",
+            "password" => "required|string"
+        ]);
+
+        if ($validation->fails()){
+            return response()->json(["errors" => $validation->errors()->all()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $user = User::where("email", $request->email)->first();
+
+        if (!$user) {
+            return \response()->json(["errors" => ["User not found"]], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!Hash::check($request->password, $user->password)) {
+            return \response()->json(["errors" => ["Invalid credentials"]], Response::HTTP_FORBIDDEN);
+        }
+        Auth::attempt([
+            "email" => $request->email,
+            "password" => $request->password
+        ]);
+        $token = Auth::user()->createToken('token')->plainTextToken;
+
+        return \response()->json([
+            "author_id" => $user->id,
+            "token" => $token,
+        ]);
     }
 
     /**
@@ -101,6 +139,21 @@ class BlogsController extends Controller
         }
     }
 
+    public function listBlogByAuthor(int $authorID)
+    {
+        try {
+            $result = $this->service->listBlogByAuthor($authorID);
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            [$message, $statusCode, $exceptionCode] = getHttpMessageAndStatusCodeFromException($e);
+
+            return response()->json([
+                "message" => $message,
+            ], $statusCode);
+        }
+    }
+
     /**
      * update blog post details
      *
@@ -111,7 +164,7 @@ class BlogsController extends Controller
     public function updateBlogPost(UpdateBlogPostsRequest $request, int $postID)
     {
         try {
-            $this->service->updateBlogPost($request->title, $request->content, $request->published_at, $request->author_id, $postID);
+            $this->service->updateBlogPost($request->titles, $request->content, $request->published_at, $request->author_id, $postID);
 
             return response()->json(["Blog Post Updated successfully"]);
 
