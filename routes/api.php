@@ -21,11 +21,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post("/author", [BlogsController::class, "creatingAuthor"]);
 
+Route::post("/author/login", [BlogsController::class, "loginAuthor"]);
+
 Route::post("/post-blog", [BlogsController::class, "publishBlogPosts"]);
 
 Route::get("/list-blogs-posted", [BlogsController::class, "listBlogPosted"]);
 
 Route::get("/list-blog/{postID}", [BlogsController::class, "listBlogPostedDetails"])->whereNumber("postID");
+
+Route::get("/list-blog-author/{authorID}", [BlogsController::class, "listBlogByAuthor"])->whereNumber("authorID");
 
 Route::put("/update-post-blog/{postID}", [BlogsController::class, "updateBlogPost"])->whereNumber("postID");
 
