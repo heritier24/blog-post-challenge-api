@@ -26,7 +26,7 @@ class BlogsServices
         $this->validateAuthor($authorID);
 
         $postBlogs = Posts::create([
-            "title" => $title,
+            "titles" => $title,
             "content" => $content,
             "published_at" => $publishedAt,
             "author_id" => $authorID,
@@ -42,7 +42,7 @@ class BlogsServices
      */
     public function listBlogPosted()
     {
-        $blogs = Posts::all(["id", "title", "content", "published_at"]);
+        $blogs = Posts::all(["id", "titles", "content", "published_at"]);
 
         return $blogs;
     }
@@ -55,14 +55,29 @@ class BlogsServices
      */
     public function listBlogPostedDetails(int $postID)
     {
-        $blogDetails = DB::select("SELECT Posts.title, Posts.content, 
-                                   Posts.published_at, PostBlogComments.user_email, 
+        $blogDetails = DB::selectOne("SELECT Posts.titles, Posts.content,
+                                   Posts.published_at, PostBlogComments.user_email,
                                    PostBlogComments.comments
-                                   FROM Posts LEFT JOIN PostBlogComments 
+                                   FROM Posts LEFT JOIN PostBlogComments
                                    ON Posts.id = PostBlogComments.post_id
                                    WHERE Posts.id = ?", [$postID]);
 
-        return $blogDetails;
+        return [
+            "titles" => $blogDetails->titles,
+            "content" => $blogDetails->content,
+            "published_at" => $blogDetails->published_at,
+        ];
+    }
+
+    public function listBlogByAuthor(int $authorID)
+    {
+        $blogByauthor = DB::select("SELECT Posts.titles, Posts.content,
+                                    Posts.published_at, users.name AS authorName
+                                    FROM Posts
+                                    INNER JOIN users ON Posts.author_id = users.id
+                                    WHERE users.id = ?", [$authorID]);
+
+        return $blogByauthor;
     }
 
     /**
@@ -79,9 +94,9 @@ class BlogsServices
         $post = $this->validateIfAuthorCreatedThisPost($authorID, $postID);
 
         $updatePosts = Posts::where("id", $post)->update([
-            "title" => $title,
+            "titles" => $title,
             "content" => $content,
-            "published_at" => $publishedAt
+            "published_at" => $publishedAt,
         ]);
 
         return $updatePosts;
@@ -95,7 +110,7 @@ class BlogsServices
      */
     public function validateAuthor($authorID)
     {
-        $author = User::where("id", $authorID)->exist();
+        $author = User::where("id", $authorID)->first();
 
         if (is_null($author)) {
 
